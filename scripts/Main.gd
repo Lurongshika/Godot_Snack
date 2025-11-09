@@ -4,6 +4,7 @@ extends Node2D
 @export var n: int = 30
 @export var spacing: float = 1
 @export var move_delay: float = 0.05
+@export var fruit_eaten: int = 0
 @onready var score_display: ScoreDisplay = $ScoreDisplay  # 节点挂在场景中
 
 var bricks: Array = []
@@ -13,7 +14,6 @@ var snake_path: Array = []
 
 var fruit_pos: Vector2 = Vector2(-1,-1)
 var fruit_node: Brick = null
-var fruit_eaten: int = 0
 
 var dead := false
 var flash_restart := false
@@ -23,7 +23,7 @@ func _ready():
 		push_error("请在 Inspector 中拖入 brick.tscn")
 		return
 
-	await generate_grid_with_bounce()  # ✅ 弹跳感生成
+	await generate_grid_with_bounce()  # 弹跳
 	await get_tree().create_timer(0.3).timeout
 
 	head = Vector2(n/2, n/2)
@@ -31,7 +31,7 @@ func _ready():
 	spawn_fruit()
 	move_snake()
 
-# ✅ 弹跳+逐行渲染
+# 弹跳+逐行渲染
 func generate_grid_with_bounce() -> void:
 	var temp = brick_scene.instantiate()
 	add_child(temp)
@@ -67,7 +67,7 @@ func bounce_row(row_idx: int) -> void:
 
 	while elapsed < duration:
 		elapsed += get_process_delta_time()
-		var t = clamp(elapsed / duration, 0, 1)
+		var t = clamp(elapsed / duration, 0, 0.9)
 		for brick in row:
 			var scale_t = sin(t * PI) * 0.2 + t  # 有弹跳感
 			brick.scale = Vector2.ONE * scale_t
@@ -78,8 +78,9 @@ func bounce_row(row_idx: int) -> void:
 		brick.scale = Vector2.ONE
 		brick.set_color(Color(1, 1, 1))
 
-# 后面逻辑都不动 ↓
+# 逻辑
 func _process(delta):
+	
 	if Input.is_action_just_pressed("ui_accept"):
 		PauseManager.toggle()
 	if PauseManager.paused:
@@ -105,7 +106,7 @@ func _process(delta):
 func spawn_fruit():
 	if fruit_node:
 		fruit_node.rotation_speed = 0.0
-		fruit_node.set_color(Color(1, 1, 1))
+		fruit_node.set_color(Color(1,1,1))
 
 	var valid_pos: Vector2
 	while true:
@@ -127,20 +128,20 @@ func update_score():
 
 func move_snake() -> void:
 	while true:
-		var timer = get_tree().create_timer(move_delay)
+		var timer = get_tree().create_timer(move_delay * log(fruit_eaten + 2) )
 		await timer.timeout
 		while PauseManager.paused:
 			await get_tree().process_frame
 
 		if dead:
 			continue
-
+		#边界穿梭
 		var next_head = head + direction
 		if next_head.x < 0: next_head.x = n-1
 		if next_head.x >= n: next_head.x = 0
 		if next_head.y < 0: next_head.y = n-1
 		if next_head.y >= n: next_head.y = 0
-
+		#死亡判定
 		var next_brick = bricks[next_head.y][next_head.x]
 		if next_brick.is_rotated_45() and next_head != fruit_pos:
 			dead = true
@@ -158,18 +159,20 @@ func move_snake() -> void:
 		#吃果子
 		if next_head == fruit_pos:
 			fruit_eaten += 1
-			var speed = 12.0 / (fruit_eaten + 1)
+			var speed = 4.0 / (fruit_eaten + 1)
 			next_brick.fade_speed = speed
 			fruit_node.rotation_speed = 0
 			fruit_node.set_color(Color(1,1,1))
 			fruit_node = null
 			spawn_fruit()
+			#for brick in get_tree().get_nodes_in_group("bricks"):
+				#brick.trigger_global_flash_custom(Color(0.5,1.0,0.5), 0.3, 1)
 			#update_score()
 		else:
-			var speed = 12.0 / (fruit_eaten + 1)
+			var speed = 4.0 / (fruit_eaten + 1)
 			next_brick.fade_speed = speed
 
-		next_brick.set_blue(1.0)
+		next_brick.set_head(1.0)
 		head = next_head
 		snake_path.append(head)
 

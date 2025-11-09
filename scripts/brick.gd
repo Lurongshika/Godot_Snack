@@ -2,6 +2,7 @@ extends CharacterBody2D
 class_name Brick
 
 @onready var sprite: Sprite2D = $Sprite2D
+@onready var main = get_node("/root/MainGame")
 var mat: ShaderMaterial
 var blue_strength: float = 0.0
 var fade_speed: float = 1.0  # 蓝色褪色速度
@@ -34,12 +35,13 @@ func _ready():
 	target_rotation = base_rotation
 
 func _process(delta):
+
 	if PauseManager.paused:
 		return
 
 	# 蓝色线性褪回
 	if blue_strength > 0.0:
-		blue_strength = max(blue_strength - delta * fade_speed, 0.0)
+		blue_strength = max(blue_strength - delta * fade_speed / log(main.fruit_eaten + 2) , 0.0)
 
 	# 蓝色褪去后恢复缩放与旋转
 	if blue_strength <= 0.0:
@@ -73,13 +75,13 @@ func _process(delta):
 		mat.set_shader_parameter("display_color", final_color)
 
 
-func set_blue(amount: float):
+func set_head(amount: float):
 	blue_strength = clamp(amount, 0.0, 1.0)
 	target_rotation = deg_to_rad(45)
 	target_scale = base_scale / 1.41
 
 func is_rotated_45() -> bool:
-	return abs(fmod(rotation, TAU) - deg_to_rad(45)) < 0.01
+	return abs(fmod(rotation, TAU) - deg_to_rad(45)) < deg_to_rad(30)
 
 # 全局闪烁方法，可传入颜色、时长、次数
 func trigger_global_flash_custom(color: Color, duration: float = 0.3, times: int = 1):
@@ -90,6 +92,16 @@ func trigger_global_flash_custom(color: Color, duration: float = 0.3, times: int
 		brick.flash_count = times
 		brick.max_flash_count = times
 
-func set_color(color: Color):
-	mat.set_shader_parameter("display_color", color)
+func set_color(color: Color): 
+	mat.set_shader_parameter("display_color", color) 
 	original_color = color
+
+func add_color(color: Color):
+	var new_color = Color(
+		(original_color.r + color.r)/2,
+		(original_color.g + color.g)/2,
+		(original_color.b + color.b)/2,
+		1.0  # alpha 保持不变
+	)
+	mat.set_shader_parameter("display_color", new_color)
+	original_color = new_color

@@ -14,7 +14,7 @@ func show_score(score:int):
 	var digit_width = 3
 	var digit_height = 5
 	var spacing = 1  # 数字间隔1格
-	var total_width = 3*digit_width + 2*spacing
+	var total_width = 3 * digit_width + 2 * spacing
 
 	var start_x = int(n/2 - total_width/2)
 	var start_y = int(n/2 - digit_height/2)
