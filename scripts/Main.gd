@@ -1,21 +1,32 @@
 extends Node2D
 
 @export var brick_scene: PackedScene
-@export var n: int = 30
+@export var n: int = 24
 @export var spacing: float = 1
 @export var move_delay: float = 0.05
-@export var fruit_eaten: int = 0
-@onready var score_display: ScoreDisplay = $ScoreDisplay  # 节点挂在场景中
+@export var fade_speed_1_fix: float = 0
+@export var fade_speed_2_fix: float = 0
+@export var fruit_eaten_1: int = 0
+@export var fruit_eaten_2: int = 0
+@export var score_1: int = 0
+@export var score_2: int = 0
+@onready var camera : Camera2D = $Camera2D
+@onready var score_label1: Label = $ScoreLabel1
+@onready var score_label2: Label = $ScoreLabel2
+#@onready var score_display: ScoreDisplay = $ScoreDisplay  # 节点挂在场景中
 
 var bricks: Array = []
-var direction: Vector2 = Vector2.RIGHT
-var head: Vector2 = Vector2.ZERO
-var snake_path: Array = []
+var direction_1: Vector2 = Vector2.RIGHT
+var direction_2: Vector2 = Vector2.LEFT
+var head_1: Vector2 = Vector2(0,0)
+var head_2: Vector2 = Vector2(n,n)
+var snake1_path: Array = []
+var snake2_path: Array = []
 
 var fruit_pos: Vector2 = Vector2(-1,-1)
 var fruit_node: Brick = null
 
-var dead := false
+var dead := true
 var flash_restart := false
 
 func _ready():
@@ -26,10 +37,11 @@ func _ready():
 	await generate_grid_with_bounce()  # 弹跳
 	await get_tree().create_timer(0.3).timeout
 
-	head = Vector2(n/2, n/2)
-	snake_path.append(head)
-	spawn_fruit()
-	move_snake()
+	head_1 = Vector2.ONE
+	snake1_path.append(head_1)
+	
+	move_snake(1)
+	move_snake(2)
 
 # 弹跳+逐行渲染
 func generate_grid_with_bounce() -> void:
@@ -79,7 +91,7 @@ func bounce_row(row_idx: int) -> void:
 		brick.set_color(Color(1, 1, 1))
 
 # 逻辑
-func _process(delta):
+func _process(_delta):
 	
 	if Input.is_action_just_pressed("ui_accept"):
 		PauseManager.toggle()
@@ -87,17 +99,30 @@ func _process(delta):
 		return
 
 	var input_dir = Vector2.ZERO
-	if Input.is_action_just_pressed("ui_right") and direction != Vector2.LEFT:
+	if Input.is_action_just_pressed("ui_right") and direction_1 != Vector2.LEFT:
 		input_dir = Vector2.RIGHT
-	elif Input.is_action_just_pressed("ui_left") and direction != Vector2.RIGHT:
+	elif Input.is_action_just_pressed("ui_left") and direction_1 != Vector2.RIGHT:
 		input_dir = Vector2.LEFT
-	elif Input.is_action_just_pressed("ui_down") and direction != Vector2.UP:
+	elif Input.is_action_just_pressed("ui_down") and direction_1 != Vector2.UP:
 		input_dir = Vector2.DOWN
-	elif Input.is_action_just_pressed("ui_up") and direction != Vector2.DOWN:
+	elif Input.is_action_just_pressed("ui_up") and direction_1 != Vector2.DOWN:
 		input_dir = Vector2.UP
 
 	if input_dir != Vector2.ZERO:
-		direction = input_dir
+		direction_1 = input_dir
+		
+	var input_dir2 = Vector2.ZERO
+	if Input.is_action_just_pressed("ui_right2") and direction_2 != Vector2.LEFT:
+		input_dir2 = Vector2.RIGHT
+	elif Input.is_action_just_pressed("ui_left2") and direction_2 != Vector2.RIGHT:
+		input_dir2 = Vector2.LEFT
+	elif Input.is_action_just_pressed("ui_down2") and direction_2 != Vector2.UP:
+		input_dir2 = Vector2.DOWN
+	elif Input.is_action_just_pressed("ui_up2") and direction_2 != Vector2.DOWN:
+		input_dir2 = Vector2.UP
+
+	if input_dir2 != Vector2.ZERO:
+		direction_2 = input_dir2
 
 	if dead and Input.is_action_just_pressed("restart") and not flash_restart:
 		flash_restart = true
@@ -123,58 +148,84 @@ func spawn_fruit():
 	fruit_node.rotation_speed = 180.0
 	fruit_node.set_color(Color(0.5, 1.0, 0.5))
 
-func update_score():
-	score_display.show_score(fruit_eaten)
+#func update_score():
+	#score_display.show_score(fruit_eaten_1)
 
-func move_snake() -> void:
+func move_snake(i: int):
 	while true:
-		var timer = get_tree().create_timer(move_delay * log(fruit_eaten + 2) )
+		var fruit_eaten = get("fruit_eaten_%d" % i)
+		var head = get("head_%d" % i)
+		var direction = get("direction_%d" % i)
+		var snake_path = get("snake%d_path" % i)
+		var fade_speed_fix = get("fade_speed_%d_fix" % i)
+		var ui_speedup = ("ui_speedup_%d" % i)
+		var score = get("score_%d" % (3-i))
+		fade_speed_fix = log(fruit_eaten / 3 + 2)
+		var timer = get_tree().create_timer(3 * move_delay * fade_speed_fix)
+		if Input.is_action_pressed(ui_speedup):
+			timer = get_tree().create_timer(move_delay * fade_speed_fix)
+		else:
+			timer = get_tree().create_timer(3 * move_delay * fade_speed_fix)
 		await timer.timeout
 		while PauseManager.paused:
 			await get_tree().process_frame
 
 		if dead:
 			continue
-		#边界穿梭
+
 		var next_head = head + direction
-		if next_head.x < 0: next_head.x = n-1
+		if next_head.x < 0: next_head.x = n - 1
 		if next_head.x >= n: next_head.x = 0
-		if next_head.y < 0: next_head.y = n-1
+		if next_head.y < 0: next_head.y = n - 1
 		if next_head.y >= n: next_head.y = 0
-		#死亡判定
+
 		var next_brick = bricks[next_head.y][next_head.x]
 		if next_brick.is_rotated_45() and next_head != fruit_pos:
 			dead = true
+			set("score_%d" % (3-i), score + 1)
+			SoundManerger.play("death")
+			camera.shake(7)
+			print(score)
+			update_score()
 			for brick in get_tree().get_nodes_in_group("bricks"):
-				brick.trigger_global_flash_custom(Color(1,0,0), 0.3, 3)
+				brick.trigger_global_flash_custom(Color(2-i, 0, i-1), 0.3, 3)
 			for row in bricks:
 				for brick in row:
-					brick.blue_strength = 0.0
+					brick.color_strength = 0.0
 					brick.target_scale = brick.base_scale
 					brick.target_rotation = brick.base_rotation
 					brick.rotation_speed = 0.0
-					brick.set_color(Color(1,1,1))
-			continue
+					brick.set_color(Color(1, 1, 1))
 
-		#吃果子
 		if next_head == fruit_pos:
+			var fruit_brick = bricks[fruit_pos.y][fruit_pos.x]
+			fruit_brick.trigger_effect()  # 播放粒子
 			fruit_eaten += 1
+			camera.shake(3)
+			SoundManerger.play("eat")
+			print("fruit_eaten_%d" % i)
+			print(fruit_eaten)
+			set("fruit_eaten_%d" % i, fruit_eaten)
 			var speed = 4.0 / (fruit_eaten + 1)
 			next_brick.fade_speed = speed
 			fruit_node.rotation_speed = 0
-			fruit_node.set_color(Color(1,1,1))
+			fruit_node.set_color(Color(1, 1, 1))
 			fruit_node = null
 			spawn_fruit()
-			#for brick in get_tree().get_nodes_in_group("bricks"):
-				#brick.trigger_global_flash_custom(Color(0.5,1.0,0.5), 0.3, 1)
-			#update_score()
 		else:
 			var speed = 4.0 / (fruit_eaten + 1)
 			next_brick.fade_speed = speed
 
-		next_brick.set_head(1.0)
+		if i == 1:
+			next_brick.set_head_1(1.0)
+		if i == 2:
+			next_brick.set_head_2(1.0)
+
 		head = next_head
 		snake_path.append(head)
+
+		set("head_%d" % i, head)
+		set("snake%d_path" % i, snake_path)
 
 func start_flash_restart() -> void:
 	for brick in get_tree().get_nodes_in_group("bricks"):
@@ -182,17 +233,24 @@ func start_flash_restart() -> void:
 	await get_tree().create_timer(2.0).timeout
 	reset_game()
 
+func update_score():
+	score_label1.text = "%d" % score_2
+	score_label2.text = "%d" % score_1
+
 func reset_game() -> void:
 	dead = false
 	flash_restart = false
-	direction = Vector2.RIGHT
-	fruit_eaten = 0
-	snake_path.clear()
+	direction_1 = Vector2.RIGHT
+	direction_2 = Vector2.LEFT
+	fruit_eaten_1 = 0
+	fruit_eaten_2 = 0
+	snake1_path.clear()
+	snake2_path.clear()
 
 	# 清空方块状态
 	for row in bricks:
 		for brick in row:
-			brick.blue_strength = 0.0
+			brick.color_strength = 0.0
 			brick.fade_speed = 1.0
 			brick.rotation_speed = 0.0
 			brick.target_rotation = brick.base_rotation
@@ -200,6 +258,13 @@ func reset_game() -> void:
 			brick.set_color(Color(1,1,1))
 
 	# 重新生成蛇和果子
-	head = Vector2(n/2, n/2)
-	snake_path.append(head)
+	var x = randi() % n
+	var y = randi() % n
+	head_1 = Vector2(x,y)
+	x = randi() % n
+	y = randi() % n
+	head_2 = Vector2(x,y)
+	snake1_path.append(head_1)
+	snake2_path.append(head_2)
 	spawn_fruit()
+	print("Player1:Player2-",score_1,":",score_2)

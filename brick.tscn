@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://cb3eq1ae5ucd4"]
+[gd_scene load_steps=11 format=3 uid="uid://cb3eq1ae5ucd4"]
 
 [ext_resource type="Script" uid="uid://b18ax4tujmmy0" path="res://scripts/brick.gd" id="1_mt0q5"]
 [ext_resource type="Shader" uid="uid://dt6syopbyiutr" path="res://shader/glow.gdshader" id="1_slegm"]
@@ -18,6 +18,30 @@ glow_bloom = 0.35
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_mt0q5"]
 size = Vector2(32, 32)
 
+[sub_resource type="CanvasTexture" id="CanvasTexture_mt0q5"]
+specular_color = Color(0, 0.57313, 5.77569e-07, 1)
+
+[sub_resource type="Curve" id="Curve_mt0q5"]
+_data = [Vector2(0, 1), 0.0, 0.181882, 0, 0, Vector2(0.655405, 0.977528), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_llic7"]
+curve = SubResource("Curve_mt0q5")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_llic7"]
+lifetime_randomness = 0.5
+particle_flag_disable_z = true
+spread = 180.0
+initial_velocity_min = 1.0
+initial_velocity_max = 200.0
+angular_velocity_min = -1.60933e-05
+angular_velocity_max = 20.0
+gravity = Vector3(0, 0, 0)
+scale_min = 4.0
+scale_max = 6.0
+scale_curve = SubResource("CurveTexture_llic7")
+color = Color(0.490196, 1, 0.490196, 0.490196)
+
 [node name="Brick" type="CharacterBody2D"]
 script = ExtResource("1_mt0q5")
 
@@ -32,3 +56,11 @@ environment = SubResource("Environment_lp24l")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 visible = false
 shape = SubResource("RectangleShape2D_mt0q5")
+
+[node name="Particles" type="GPUParticles2D" parent="."]
+emitting = false
+amount = 50
+texture = SubResource("CanvasTexture_mt0q5")
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("ParticleProcessMaterial_llic7")

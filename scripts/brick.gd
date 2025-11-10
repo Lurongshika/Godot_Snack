@@ -2,9 +2,12 @@ extends CharacterBody2D
 class_name Brick
 
 @onready var sprite: Sprite2D = $Sprite2D
+@onready var particles: GPUParticles2D = $Particles
 @onready var main = get_node("/root/MainGame")
+@export var target_color: Color = Color(0.5, 0.5, 1.0)  # 可以在编辑器里改颜色
 var mat: ShaderMaterial
-var blue_strength: float = 0.0
+var color_strength: float = 0.0
+
 var fade_speed: float = 1.0  # 蓝色褪色速度
 
 # 缩放与旋转
@@ -39,12 +42,12 @@ func _process(delta):
 	if PauseManager.paused:
 		return
 
-	# 蓝色线性褪回
-	if blue_strength > 0.0:
-		blue_strength = max(blue_strength - delta * fade_speed / log(main.fruit_eaten + 2) , 0.0)
+	# 颜色线性褪回
+	if color_strength > 0.0:
+		color_strength = max(color_strength - delta * fade_speed / log((main.fruit_eaten_1+main.fruit_eaten_2)/3 + 2) , 0.0)
 
-	# 蓝色褪去后恢复缩放与旋转
-	if blue_strength <= 0.0:
+	# 颜色褪去后恢复缩放与旋转
+	if color_strength <= 0.0:
 		target_rotation = base_rotation
 		target_scale = base_scale
 
@@ -69,19 +72,26 @@ func _process(delta):
 				mat.set_shader_parameter("display_color", original_color)
 				target_scale = base_scale
 				target_rotation = base_rotation
-				blue_strength = 0.0
+				color_strength = 0.0
 	else:
-		var final_color = original_color.lerp(Color(0.5,0.5,1.0), blue_strength)
+		var final_color = original_color.lerp(target_color, color_strength)
 		mat.set_shader_parameter("display_color", final_color)
 
 
-func set_head(amount: float):
-	blue_strength = clamp(amount, 0.0, 1.0)
+func set_head_1(amount: float):
+	target_color = Color(0.5,0.5,1.0)
+	color_strength = clamp(amount, 0.0, 1.0)
 	target_rotation = deg_to_rad(45)
 	target_scale = base_scale / 1.41
 
+func set_head_2(amount: float):
+	target_color = Color(1.0,0.5,0.5)
+	color_strength = clamp(amount, 0.0, 1.0)
+	target_rotation = deg_to_rad(-45)
+	target_scale = base_scale / 1.41
+
 func is_rotated_45() -> bool:
-	return abs(fmod(rotation, TAU) - deg_to_rad(45)) < deg_to_rad(30)
+	return abs(fmod(rotation, TAU) - deg_to_rad(0)) > deg_to_rad(20)
 
 # 全局闪烁方法，可传入颜色、时长、次数
 func trigger_global_flash_custom(color: Color, duration: float = 0.3, times: int = 1):
@@ -105,3 +115,6 @@ func add_color(color: Color):
 	)
 	mat.set_shader_parameter("display_color", new_color)
 	original_color = new_color
+	
+func trigger_effect():
+	particles.emitting = true

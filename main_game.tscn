@@ -1,12 +1,72 @@
-[gd_scene load_steps=4 format=3 uid="uid://cbjw0gjme67su"]
+[gd_scene load_steps=9 format=3 uid="uid://cbjw0gjme67su"]
 
 [ext_resource type="Script" uid="uid://c4atu3bgs3s07" path="res://scripts/Main.gd" id="1_1oj5k"]
 [ext_resource type="PackedScene" uid="uid://cb3eq1ae5ucd4" path="res://brick.tscn" id="2_yx7mw"]
+[ext_resource type="Script" uid="uid://bokmnp176idi0" path="res://CameraShake.gd" id="3_6bm6p"]
 [ext_resource type="Script" uid="uid://5h3phacd5cas" path="res://scripts/ScoreDisplay.gd" id="3_ykeeq"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_ykeeq"]
+font_size = 300
+
+[sub_resource type="Environment" id="Environment_ykeeq"]
+background_mode = 3
+glow_enabled = true
+glow_normalized = true
+glow_strength = 1.75
+glow_bloom = 0.35
+
+[sub_resource type="LabelSettings" id="LabelSettings_6bm6p"]
+font_size = 30
+
+[sub_resource type="Environment" id="Environment_6bm6p"]
+background_mode = 3
+glow_enabled = true
+glow_normalized = true
+glow_intensity = 6.34
+glow_strength = 1.79
 
 [node name="MainGame" type="Node2D"]
 script = ExtResource("1_1oj5k")
 brick_scene = ExtResource("2_yx7mw")
 
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(960, 540)
+script = ExtResource("3_6bm6p")
+
 [node name="ScoreDisplay" type="Node2D" parent="."]
 script = ExtResource("3_ykeeq")
+
+[node name="ScoreLabel1" type="Label" parent="."]
+offset_left = 180.0
+offset_top = 328.0
+offset_right = 709.0
+offset_bottom = 1010.0
+text = "0"
+label_settings = SubResource("LabelSettings_ykeeq")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="ScoreLabel1"]
+environment = SubResource("Environment_ykeeq")
+
+[node name="ScoreLabel2" type="Label" parent="."]
+offset_left = 1550.0
+offset_top = 328.0
+offset_right = 1721.0
+offset_bottom = 737.0
+text = "0"
+label_settings = SubResource("LabelSettings_ykeeq")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="ScoreLabel2"]
+environment = SubResource("Environment_ykeeq")
+
+[node name="subtitle" type="Label" parent="."]
+offset_left = 45.0
+offset_top = 1014.0
+offset_right = 2466.0
+offset_bottom = 1490.0
+text = "Press \"R\" to ReStart.                                                                                                                                                                                   Demo."
+label_settings = SubResource("LabelSettings_6bm6p")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="subtitle"]
+environment = SubResource("Environment_6bm6p")
